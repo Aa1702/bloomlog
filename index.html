@@ -1,0 +1,1567 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>咲く Saku — Bloom Calendar</title>
+<link href="https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&family=Zen+Antique&family=Lato:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════
+   ROOT TOKENS — washi paper zen
+═══════════════════════════════ */
+:root {
+  --washi:        #f8f4ee;
+  --washi-warm:   #f1e8da;
+  --washi-deep:   #dfd0be;
+  --ink:          #2a1f1a;
+  --ink-mid:      #6b4f3a;
+  --ink-light:    #a8897a;
+  --ink-faint:    #d4c0b0;
+  --blossom-pale: #fde8f0;
+  --blossom-1:    #f5ccd6;
+  --blossom-2:    #e8a0b8;
+  --blossom-3:    #cc7090;
+  --blossom-deep: #a04060;
+  --gold:         #c8a060;
+  --gold-pale:    #f0e2c4;
+  --sky:          #e8f2fa;
+  --r:            18px;
+  --r-sm:         10px;
+  --sh:           0 4px 28px rgba(42,31,26,0.09);
+  --sh-md:        0 8px 44px rgba(42,31,26,0.15);
+}
+
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { height: 100%; }
+
+body {
+  font-family: 'Lato', sans-serif;
+  font-weight: 300;
+  background: var(--washi);
+  color: var(--ink);
+  min-height: 100vh;
+  overflow-x: hidden;
+  /* washi paper texture */
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='400' height='400' filter='url(%23n)' opacity='0.032'/%3E%3C/svg%3E"),
+    radial-gradient(ellipse at 18% 10%, rgba(240,180,200,0.13) 0%, transparent 52%),
+    radial-gradient(ellipse at 82% 90%, rgba(200,160,96,0.09) 0%, transparent 50%),
+    radial-gradient(ellipse at 55% 45%, rgba(232,242,250,0.22) 0%, transparent 55%),
+    linear-gradient(160deg, #faf5ef 0%, #f3ead8 55%, #f8f2ea 100%);
+}
+
+/* ─── PETAL CANVAS ─── */
+#petalCanvas {
+  position: fixed; inset: 0;
+  pointer-events: none; z-index: 60;
+}
+
+/* ─── APP SHELL ─── */
+.app {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: clamp(14px, 3vw, 38px) clamp(12px, 3vw, 32px) 80px;
+}
+
+/* ─── HEADER ─── */
+.hdr {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-bottom: clamp(18px, 3vw, 36px);
+  padding-bottom: clamp(14px, 2vw, 22px);
+  border-bottom: 1px solid var(--washi-deep);
+  position: relative;
+}
+.hdr::after {
+  content: '';
+  position: absolute; bottom: -1px; left: 0;
+  width: clamp(60px, 10vw, 110px); height: 2px;
+  background: linear-gradient(90deg, var(--blossom-3), transparent);
+}
+.brand { display: flex; flex-direction: column; gap: 1px; }
+.kana-top {
+  font-family: 'Zen Antique', serif;
+  font-size: clamp(0.72rem, 1.5vw, 0.9rem);
+  color: var(--blossom-3); letter-spacing: 5px; opacity: 0.85;
+}
+.brand-h1 {
+  font-family: 'IM Fell English', serif;
+  font-size: clamp(1.9rem, 4.8vw, 3rem);
+  font-weight: 400; color: var(--ink);
+  letter-spacing: -0.5px; line-height: 1;
+}
+.brand-h1 em { font-style: italic; color: var(--blossom-3); }
+.brand-sub {
+  font-size: clamp(0.6rem, 1.1vw, 0.7rem);
+  color: var(--ink-light); letter-spacing: 3px;
+  text-transform: uppercase; margin-top: 2px;
+}
+.hdr-r { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+
+/* Sound button */
+.snd-btn {
+  display: flex; align-items: center; gap: 7px;
+  background: var(--washi-warm);
+  border: 1px solid var(--washi-deep);
+  border-radius: 30px; padding: 8px 18px;
+  cursor: pointer; font-family: 'Lato', sans-serif;
+  font-size: 0.77rem; color: var(--ink-mid);
+  transition: all 0.22s; box-shadow: var(--sh);
+  user-select: none;
+}
+.snd-btn:hover, .snd-btn.on {
+  background: var(--blossom-pale);
+  border-color: var(--blossom-2);
+  color: var(--blossom-deep);
+}
+
+/* Month nav */
+.mnav {
+  display: flex; align-items: center; gap: 5px;
+  background: var(--washi-warm);
+  border: 1px solid var(--washi-deep);
+  border-radius: 30px; padding: 4px 8px;
+  box-shadow: var(--sh);
+}
+.nb {
+  width: 33px; height: 33px;
+  border-radius: 50%; border: none;
+  background: transparent; cursor: pointer;
+  color: var(--ink-mid); font-size: 1.1rem;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.18s;
+}
+.nb:hover { background: var(--blossom-1); color: var(--blossom-deep); }
+.mlbl {
+  font-family: 'IM Fell English', serif;
+  font-style: italic;
+  font-size: clamp(0.88rem, 1.8vw, 1.05rem);
+  color: var(--ink);
+  min-width: clamp(130px, 15vw, 172px);
+  text-align: center;
+}
+
+/* ─── MAIN GRID ─── */
+.grid {
+  display: grid;
+  grid-template-columns: 1fr clamp(265px, 27vw, 322px);
+  gap: clamp(14px, 2.4vw, 24px);
+  align-items: start;
+}
+@media (max-width: 800px) { .grid { grid-template-columns: 1fr; } }
+
+/* ─── CARDS ─── */
+.card {
+  background: rgba(255, 252, 248, 0.94);
+  border-radius: var(--r);
+  box-shadow: var(--sh);
+  border: 1px solid var(--washi-deep);
+  overflow: hidden;
+}
+.ch {
+  padding: clamp(13px,1.9vw,18px) clamp(15px,2.5vw,22px) 0;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.ct {
+  font-family: 'IM Fell English', serif;
+  font-size: clamp(0.88rem, 1.7vw, 1.02rem);
+  font-weight: 400; color: var(--ink);
+  display: flex; align-items: center; gap: 7px;
+}
+.kana { font-family: 'Zen Antique', serif; font-size: 0.8em; color: var(--blossom-3); opacity: 0.75; }
+.csub { font-size: 0.7rem; color: var(--ink-light); font-style: italic; }
+.cb { padding: clamp(11px,1.8vw,16px) clamp(14px,2vw,20px) clamp(14px,2.2vw,22px); }
+
+/* ─── TREE SCENE ─── */
+.tree-scene {
+  background: linear-gradient(170deg,
+    #eaf4fb 0%, #f0eef8 28%, #f5ecf0 60%, #ede5d8 100%);
+  border-radius: var(--r);
+  box-shadow: var(--sh);
+  border: 1px solid var(--washi-deep);
+  overflow: hidden;
+  position: relative;
+}
+/* Ink corner marks */
+.tree-scene::before, .tree-scene::after {
+  content: ''; position: absolute;
+  width: 38px; height: 38px;
+  border-color: var(--blossom-2); border-style: solid;
+  opacity: 0.28; z-index: 5; pointer-events: none;
+}
+.tree-scene::before { top: 10px; left: 10px; border-width: 1.5px 0 0 1.5px; border-radius: 4px 0 0 0; }
+.tree-scene::after  { bottom: 10px; right: 10px; border-width: 0 1.5px 1.5px 0; border-radius: 0 0 4px 0; }
+
+/* Tree image container */
+.tree-wrap {
+  position: relative;
+  width: 100%;
+  padding-bottom: 50%;
+  overflow: hidden;
+  min-height: 190px;
+}
+.tree-inner {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+}
+
+/* The actual phase image */
+.tree-img {
+  max-width: 90%;
+  max-height: 100%;
+  width: auto;
+  height: 100%;
+  object-fit: contain;
+  transform-origin: 50% 88%;
+  animation: breeze 5.5s ease-in-out infinite;
+  transition: opacity 0.6s ease, transform 0.6s ease;
+  filter: drop-shadow(0 6px 18px rgba(180,80,110,0.12));
+  position: absolute;
+}
+.tree-img.hidden   { opacity: 0; pointer-events: none; }
+.tree-img.visible  { opacity: 1; }
+.tree-img.level-up { animation: breeze 5.5s ease-in-out infinite, levelGlow 1.8s ease forwards; }
+
+@keyframes breeze {
+  0%,  100% { transform: rotate(0deg) translateX(0px); }
+  18%        { transform: rotate(0.7deg) translateX(2px); }
+  42%        { transform: rotate(-0.5deg) translateX(-1.8px); }
+  68%        { transform: rotate(0.4deg) translateX(1.2px); }
+  85%        { transform: rotate(-0.3deg) translateX(-0.8px); }
+}
+@keyframes levelGlow {
+  0%   { filter: drop-shadow(0 0 0px rgba(240,180,200,0)); }
+  35%  { filter: drop-shadow(0 0 32px rgba(240,160,200,1)) brightness(1.12); }
+  100% { filter: drop-shadow(0 6px 18px rgba(180,80,110,0.12)) brightness(1); }
+}
+
+/* Oval vignette frame */
+.oval-vignette {
+  position: absolute; inset: 0; z-index: 2; pointer-events: none;
+  background: radial-gradient(
+    ellipse 68% 80% at 50% 54%,
+    transparent 52%,
+    rgba(232,220,205,0.55) 76%,
+    rgba(232,220,205,0.92) 100%
+  );
+}
+
+/* Stage label pill */
+.slabel {
+  position: absolute; bottom: 10px; left: 50%;
+  transform: translateX(-50%);
+  background: rgba(248,244,238,0.92);
+  border: 1px solid var(--washi-deep);
+  border-radius: 20px; padding: 4px 18px;
+  font-family: 'IM Fell English', serif;
+  font-style: italic;
+  font-size: clamp(0.68rem, 1.4vw, 0.8rem);
+  color: var(--ink-mid); z-index: 4;
+  white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(42,31,26,0.08);
+}
+
+/* Garden stats row */
+.gbar {
+  padding: clamp(9px,1.4vw,13px) clamp(15px,2vw,21px);
+  background: rgba(240,230,215,0.48);
+  border-top: 1px solid var(--washi-deep);
+  display: flex; gap: clamp(12px,2vw,20px);
+  flex-wrap: wrap; align-items: center;
+}
+.gs { display: flex; align-items: center; gap: 5px; font-size: clamp(0.68rem,1.3vw,0.78rem); color: var(--ink-mid); }
+.gsv { font-family: 'IM Fell English', serif; font-size: clamp(0.95rem,1.9vw,1.12rem); color: var(--ink); }
+
+/* Monthly goal bar */
+.goal-area {
+  padding: clamp(9px,1.4vw,13px) clamp(15px,2vw,21px) clamp(13px,1.9vw,17px);
+}
+.goal-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.goal-lbl { font-size: 0.66rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1.6px; color: var(--ink-light); }
+.goal-pct { font-family: 'IM Fell English', serif; font-style: italic; font-size: 1rem; color: var(--blossom-3); }
+.goal-track { height: 6px; background: var(--washi-deep); border-radius: 99px; overflow: hidden; }
+.goal-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--blossom-1), var(--blossom-2), var(--blossom-3));
+  border-radius: 99px;
+  transition: width 1.3s cubic-bezier(0.34, 1.1, 0.64, 1);
+}
+.goal-ir {
+  display: flex; align-items: center; gap: 5px;
+  margin-top: 7px; font-size: 0.7rem; color: var(--ink-light);
+}
+.goal-ir input {
+  width: 44px; padding: 3px 6px;
+  border: 1px solid var(--washi-deep); border-radius: 6px;
+  font-family: 'Lato', sans-serif; font-size: 0.78rem;
+  color: var(--ink); background: var(--washi-warm);
+  text-align: center; outline: none;
+}
+.goal-ir input:focus { border-color: var(--blossom-2); }
+
+/* ─── CALENDAR ─── */
+.cal-pad { padding: 0 clamp(11px,1.8vw,18px) clamp(14px,2vw,18px); }
+.wdr { display: grid; grid-template-columns: repeat(7,1fr); margin-bottom: 5px; }
+.wd {
+  text-align: center;
+  font-size: clamp(0.56rem, 1.1vw, 0.66rem);
+  font-weight: 700; color: var(--ink-faint);
+  letter-spacing: 1.5px; text-transform: uppercase; padding: 6px 0;
+}
+.dg { display: grid; grid-template-columns: repeat(7,1fr); gap: clamp(3px,0.6vw,5px); }
+
+.dc {
+  aspect-ratio: 1;
+  border-radius: clamp(7px, 1.2vw, 11px);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  cursor: pointer; position: relative;
+  background: var(--washi-warm);
+  border: 1px solid transparent;
+  min-height: clamp(28px, 4.5vw, 46px);
+  user-select: none; transition: all 0.17s;
+}
+.dc:hover:not(.empty) {
+  transform: translateY(-2px) scale(1.07);
+  box-shadow: var(--sh-md);
+  background: white; z-index: 2;
+}
+.dc.empty { background: transparent; cursor: default; pointer-events: none; }
+.dc.today {
+  border-color: var(--blossom-2);
+  background: white;
+  box-shadow: 0 0 0 3px rgba(204,112,144,0.14);
+}
+.dc.worked {
+  background: linear-gradient(145deg, rgba(245,204,214,0.6), rgba(232,160,184,0.78));
+  border-color: var(--blossom-2);
+}
+.dc.applied {
+  background: linear-gradient(145deg, rgba(195,218,244,0.62), rgba(152,188,228,0.72));
+  border-color: #88aad4;
+}
+.dc.worked.applied {
+  background: linear-gradient(145deg, rgba(232,160,184,0.68), rgba(152,188,228,0.68));
+}
+.dc.hev::after {
+  content: ''; position: absolute; bottom: 3px;
+  width: 4px; height: 4px; border-radius: 50%; background: var(--gold);
+}
+.dn { font-size: clamp(0.65rem, 1.3vw, 0.8rem); font-weight: 400; color: var(--ink); line-height: 1; }
+.dc.worked .dn { color: var(--blossom-deep); font-weight: 700; }
+.dmk { font-size: 0.42rem; margin-top: 2px; display: flex; gap: 1px; }
+.dmk span { display: block; width: 3px; height: 3px; border-radius: 50%; background: var(--blossom-3); }
+
+/* Calendar legend */
+.cleg { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 12px; }
+.leg { display: flex; align-items: center; gap: 5px; font-size: 0.66rem; color: var(--ink-light); }
+.ld { width: 9px; height: 9px; border-radius: 2px; }
+.ld.w { background: rgba(232,160,184,0.8); border: 1px solid var(--blossom-2); }
+.ld.a { background: rgba(152,188,228,0.72); border: 1px solid #88aad4; }
+.ld.e { background: var(--gold); opacity: 0.8; }
+
+/* ─── SIDEBAR ─── */
+.sidebar { display: flex; flex-direction: column; gap: clamp(11px,1.7vw,15px); }
+
+/* Streak card */
+.streak-card {
+  background: linear-gradient(135deg, #fef6ed, #faebd6);
+  border-radius: var(--r);
+  border: 1px solid rgba(200,160,96,0.28);
+  padding: clamp(13px,2vw,20px);
+  box-shadow: var(--sh);
+  display: flex; align-items: center; gap: 14px;
+}
+.flame { font-size: clamp(1.6rem, 3.4vw, 2.1rem); animation: flamePulse 1.9s ease-in-out infinite; display: block; }
+@keyframes flamePulse {
+  0%,100% { transform: scale(1) rotate(-3deg); }
+  50%      { transform: scale(1.13) rotate(3deg); }
+}
+.streak-n {
+  font-family: 'IM Fell English', serif;
+  font-size: clamp(1.6rem, 3.4vw, 2.1rem);
+  font-weight: 400; line-height: 1; color: var(--ink);
+}
+.streak-n sub { font-size: 0.42em; font-family: 'Lato', sans-serif; color: var(--ink-light); vertical-align: middle; }
+.streak-sub { font-size: 0.62rem; color: var(--ink-light); text-transform: uppercase; letter-spacing: 1.5px; margin-top: 3px; }
+
+/* Stats grid */
+.stg { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(7px,1.1vw,11px); }
+.st {
+  background: var(--washi-warm);
+  border-radius: var(--r-sm);
+  border: 1px solid var(--washi-deep);
+  padding: clamp(9px,1.4vw,13px) 10px;
+  text-align: center;
+}
+.stv {
+  font-family: 'IM Fell English', serif;
+  font-size: clamp(1.3rem,2.8vw,1.7rem);
+  font-weight: 400; color: var(--ink);
+  display: block; line-height: 1;
+}
+.stl { font-size: 0.6rem; color: var(--ink-light); text-transform: uppercase; letter-spacing: 1px; margin-top: 3px; display: block; }
+
+/* Quote card */
+.quote-card {
+  background: rgba(255,252,248,0.94);
+  border-radius: var(--r);
+  border: 1px solid var(--washi-deep);
+  padding: clamp(14px,2vw,20px);
+  box-shadow: var(--sh);
+  position: relative; overflow: hidden;
+}
+.quote-card::before {
+  content: '\300C';
+  font-family: 'Zen Antique', serif;
+  font-size: 4.5rem; color: var(--blossom-1);
+  position: absolute; top: -8px; left: 7px;
+  line-height: 1; pointer-events: none; opacity: 0.65;
+}
+.quote-card::after {
+  content: '';
+  position: absolute; bottom: 0; right: 0;
+  width: 55px; height: 55px;
+  background: radial-gradient(circle at bottom right, rgba(245,204,214,0.28), transparent 70%);
+}
+.qt {
+  font-family: 'IM Fell English', serif;
+  font-style: italic;
+  font-size: clamp(0.82rem,1.6vw,0.94rem);
+  color: var(--ink-mid); line-height: 1.68;
+  position: relative; z-index: 1; padding-left: 5px;
+}
+.qa {
+  font-size: 0.6rem; color: var(--ink-light);
+  text-transform: uppercase; letter-spacing: 1.5px;
+  margin-top: 10px; display: block; text-align: right;
+}
+
+/* ─── MODAL OVERLAY ─── */
+.overlay {
+  position: fixed; inset: 0;
+  background: rgba(42,31,26,0.44);
+  backdrop-filter: blur(12px) saturate(0.8);
+  z-index: 500;
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.3s;
+  padding: 16px;
+}
+.overlay.open { opacity: 1; pointer-events: all; }
+
+.modal {
+  background: var(--washi);
+  border-radius: 24px;
+  padding: clamp(22px,3.8vw,38px);
+  width: 100%; max-width: 438px;
+  box-shadow: 0 32px 80px rgba(42,31,26,0.26);
+  border: 1px solid var(--washi-deep);
+  transform: translateY(28px) scale(0.95);
+  transition: transform 0.37s cubic-bezier(0.34,1.4,0.64,1);
+  max-height: 90vh; overflow-y: auto;
+  position: relative;
+}
+.modal::before, .modal::after {
+  content: '✿'; font-size: 0.88rem; color: var(--blossom-2);
+  opacity: 0.48; position: absolute;
+}
+.modal::before { top: 13px; right: 18px; }
+.modal::after  { bottom: 13px; left: 18px; transform: rotate(180deg); }
+.overlay.open .modal { transform: translateY(0) scale(1); }
+
+.mdate {
+  font-family: 'IM Fell English', serif;
+  font-size: clamp(1rem,2.3vw,1.25rem);
+  color: var(--ink); margin-bottom: 20px;
+  padding-bottom: 13px;
+  border-bottom: 1px solid var(--washi-deep);
+  display: flex; align-items: center; gap: 8px;
+}
+.mdate::before { content: '花'; font-family: 'Zen Antique',serif; color: var(--blossom-3); font-size: 1.1em; opacity: 0.7; }
+
+.ms { margin-bottom: 16px; }
+.ml { display: block; font-size: 0.64rem; font-weight: 700; color: var(--ink-light); text-transform: uppercase; letter-spacing: 1.6px; margin-bottom: 7px; }
+
+.tog-row { display: flex; gap: 8px; }
+.tog {
+  flex: 1; padding: clamp(8px,1.4vw,11px) 8px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--washi-deep);
+  background: var(--washi-warm); cursor: pointer;
+  font-family: 'Lato', sans-serif; font-size: 0.79rem;
+  font-weight: 400; color: var(--ink-mid); transition: all 0.17s;
+}
+.tog:hover { border-color: var(--blossom-2); }
+.tog.ow { background: rgba(245,204,214,0.62); border-color: var(--blossom-2); color: var(--blossom-deep); font-weight: 700; }
+.tog.oa { background: rgba(195,218,244,0.62); border-color: #88aad4; color: #305888; font-weight: 700; }
+
+.mta, .min {
+  width: 100%; background: var(--washi-warm);
+  border: 1px solid var(--washi-deep);
+  border-radius: var(--r-sm); padding: 10px 13px;
+  font-family: 'Lato', sans-serif; font-size: 0.85rem; font-weight: 300;
+  color: var(--ink); outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.mta { resize: none; min-height: 70px; }
+.mta:focus, .min:focus { border-color: var(--blossom-2); box-shadow: 0 0 0 3px rgba(204,112,144,0.11); }
+::placeholder { color: var(--ink-faint); font-style: italic; }
+
+.icg { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 7px; }
+.ico {
+  width: 29px; height: 29px; border-radius: 6px;
+  background: var(--washi-warm); border: 1px solid transparent;
+  cursor: pointer; font-size: 0.9rem;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.14s;
+}
+.ico:hover { background: white; border-color: var(--blossom-2); transform: scale(1.1); }
+.ico.sel { background: white; border-color: var(--blossom-3); box-shadow: 0 0 0 2px rgba(204,112,144,0.18); }
+
+.ar { display: flex; gap: 7px; }
+.ar .min { flex: 1; }
+.ab {
+  padding: 8px 13px; border-radius: var(--r-sm);
+  border: 1px solid var(--blossom-2); background: var(--washi-warm);
+  color: var(--blossom-deep); font-family: 'Lato', sans-serif;
+  font-weight: 700; font-size: 0.77rem; cursor: pointer;
+  transition: all 0.14s; white-space: nowrap;
+}
+.ab:hover { background: var(--blossom-1); }
+
+.evl { display: flex; flex-direction: column; gap: 5px; margin-top: 7px; }
+.evi {
+  display: flex; align-items: center; gap: 7px;
+  background: var(--washi-warm); border-radius: 8px;
+  border: 1px solid var(--washi-deep); padding: 7px 11px; font-size: 0.8rem;
+}
+.evt { flex: 1; color: var(--ink); font-weight: 300; }
+.evd {
+  background: none; border: none; cursor: pointer;
+  color: var(--ink-light); font-size: 0.82rem; padding: 2px 5px;
+  border-radius: 5px; transition: all 0.13s;
+}
+.evd:hover { color: var(--blossom-deep); background: var(--blossom-1); }
+
+.mbtns { display: flex; gap: 8px; margin-top: 22px; }
+.bp {
+  flex: 1; padding: clamp(10px,1.4vw,13px);
+  border: none; border-radius: var(--r-sm);
+  background: linear-gradient(135deg, var(--blossom-2), var(--blossom-3));
+  color: white; font-family: 'Lato', sans-serif;
+  font-weight: 700; font-size: 0.85rem; cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 4px 18px rgba(200,100,130,0.36);
+}
+.bp:hover { transform: translateY(-1px); box-shadow: 0 6px 24px rgba(200,100,130,0.48); }
+.bg {
+  padding: clamp(10px,1.4vw,13px) 18px;
+  border: 1px solid var(--washi-deep); border-radius: var(--r-sm);
+  background: var(--washi-warm); color: var(--ink-mid);
+  font-family: 'Lato', sans-serif; font-weight: 400; font-size: 0.85rem;
+  cursor: pointer; transition: all 0.2s;
+}
+.bg:hover { background: var(--blossom-1); border-color: var(--blossom-2); color: var(--blossom-deep); }
+
+/* ─── TOAST ─── */
+.toast {
+  position: fixed; bottom: clamp(14px,3vw,26px); left: 50%;
+  transform: translateX(-50%) translateY(72px);
+  background: var(--ink); color: var(--washi);
+  padding: clamp(8px,1.4vw,11px) clamp(20px,3vw,30px);
+  border-radius: 30px; font-size: 0.8rem; letter-spacing: 0.2px;
+  z-index: 700; pointer-events: none;
+  transition: transform 0.42s cubic-bezier(0.34,1.4,0.64,1);
+  box-shadow: 0 8px 32px rgba(42,31,26,0.22);
+  max-width: 88vw; text-align: center;
+}
+.toast.show { transform: translateX(-50%) translateY(0); }
+
+/* ─── CONFETTI ─── */
+.cf {
+  position: fixed; top: -12px; pointer-events: none; z-index: 400;
+  border-radius: 50%;
+  animation: cffall linear forwards;
+}
+@keyframes cffall { to { transform: translateY(112vh) rotate(760deg); opacity: 0; } }
+
+/* ─── GOAL CELEBRATION OVERLAY ─── */
+.goal-overlay {
+  position: fixed; inset: 0; z-index: 800;
+  display: flex; align-items: center; justify-content: center;
+  padding: 20px;
+  background: rgba(42,31,26,0.52);
+  backdrop-filter: blur(14px) saturate(0.7);
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.4s;
+}
+.goal-overlay.open { opacity: 1; pointer-events: all; }
+
+.goal-cel {
+  background: var(--washi);
+  border-radius: 28px;
+  padding: clamp(28px,5vw,52px) clamp(24px,5vw,52px);
+  max-width: 460px; width: 100%;
+  text-align: center;
+  box-shadow: 0 40px 100px rgba(42,31,26,0.3);
+  border: 1px solid var(--washi-deep);
+  transform: scale(0.88) translateY(24px);
+  transition: transform 0.45s cubic-bezier(0.34,1.4,0.64,1);
+  position: relative; overflow: hidden;
+}
+.goal-overlay.open .goal-cel { transform: scale(1) translateY(0); }
+
+/* Decorative ink border corners */
+.goal-cel::before, .goal-cel::after {
+  content: ''; position: absolute;
+  width: 48px; height: 48px;
+  border-color: var(--blossom-2); border-style: solid; opacity: 0.35;
+}
+.goal-cel::before { top: 12px; left: 12px; border-width: 2px 0 0 2px; border-radius: 5px 0 0 0; }
+.goal-cel::after  { bottom: 12px; right: 12px; border-width: 0 2px 2px 0; border-radius: 0 0 5px 0; }
+
+.goal-tree-anim {
+  font-size: clamp(4rem,12vw,6.5rem);
+  display: block; margin-bottom: 10px;
+  animation: goalTreeBounce 0.7s cubic-bezier(0.34,1.56,0.64,1) forwards;
+}
+@keyframes goalTreeBounce {
+  0%   { transform: scale(0.4) rotate(-8deg); opacity: 0; }
+  60%  { transform: scale(1.18) rotate(4deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+.goal-cel-kana {
+  font-family: 'Zen Antique', serif;
+  font-size: 0.88rem; color: var(--blossom-3);
+  letter-spacing: 5px; display: block; margin-bottom: 6px; opacity: 0.8;
+}
+.goal-cel-h {
+  font-family: 'IM Fell English', serif;
+  font-size: clamp(1.5rem,4vw,2.1rem);
+  font-weight: 400; color: var(--ink);
+  line-height: 1.15; margin-bottom: 14px;
+}
+.goal-cel-h em { font-style: italic; color: var(--blossom-3); }
+.goal-cel-msg {
+  font-size: clamp(0.84rem,1.8vw,0.96rem);
+  color: var(--ink-mid); line-height: 1.65;
+  font-style: italic; margin-bottom: 22px;
+  padding: 0 8px;
+}
+.goal-cel-stats {
+  display: flex; gap: 10px; justify-content: center;
+  margin-bottom: 26px; flex-wrap: wrap;
+}
+.goal-stat-chip {
+  background: var(--washi-warm);
+  border: 1px solid var(--washi-deep);
+  border-radius: 12px; padding: 10px 18px;
+  text-align: center;
+}
+.goal-stat-chip .v {
+  font-family: 'IM Fell English', serif;
+  font-size: 1.6rem; color: var(--ink); display: block; line-height: 1;
+}
+.goal-stat-chip .l {
+  font-size: 0.64rem; color: var(--ink-light);
+  text-transform: uppercase; letter-spacing: 1px;
+}
+.goal-cel-close {
+  background: linear-gradient(135deg, var(--blossom-2), var(--blossom-3));
+  border: none; border-radius: 30px;
+  padding: 12px 36px; color: white;
+  font-family: 'Lato', sans-serif; font-weight: 700; font-size: 0.88rem;
+  cursor: pointer; transition: all 0.2s;
+  box-shadow: 0 4px 18px rgba(200,100,130,0.38);
+  letter-spacing: 0.5px;
+}
+.goal-cel-close:hover { transform: translateY(-2px); box-shadow: 0 6px 24px rgba(200,100,130,0.5); }
+
+/* Petal burst ring around celebration */
+.cel-petal {
+  position: absolute; font-size: 1.1rem; pointer-events: none;
+  animation: celPetalFly 1.4s cubic-bezier(0.2,0,0.8,1) forwards;
+}
+@keyframes celPetalFly {
+  0%   { transform: translate(0,0) scale(0) rotate(0deg); opacity: 1; }
+  100% { transform: translate(var(--dx),var(--dy)) scale(1) rotate(var(--dr)); opacity: 0; }
+}
+</style>
+</head>
+<body>
+
+<canvas id="petalCanvas"></canvas>
+<div class="toast" id="toast"></div>
+
+<div class="app">
+
+  <!-- ══ HEADER ══ -->
+  <header class="hdr">
+    <div class="brand">
+      <span class="kana-top">咲く · saku</span>
+      <h1 class="brand-h1">Bl<em>oo</em>m</h1>
+      <p class="brand-sub">your living growth garden</p>
+    </div>
+    <div class="hdr-r">
+      <button class="snd-btn" id="sndBtn" onclick="toggleSound()">
+        <span id="sndIco">🌿</span>
+        <span id="sndLbl">Nature Sounds</span>
+      </button>
+      <div class="mnav">
+        <button class="nb" id="prevM">‹</button>
+        <span class="mlbl" id="mlbl"></span>
+        <button class="nb" id="nextM">›</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ══ MAIN GRID ══ -->
+  <div class="grid">
+
+    <!-- LEFT COLUMN -->
+    <div style="display:flex; flex-direction:column; gap:clamp(14px,2.3vw,22px);">
+
+      <!-- TREE SCENE -->
+      <div class="tree-scene">
+        <div class="ch" style="padding:clamp(13px,1.9vw,17px) clamp(15px,2.5vw,22px) 0; position:relative; z-index:4;">
+          <span class="ct">Cherry Blossom Garden <span class="kana">花園</span></span>
+          <span class="csub" id="gsub">plant your first seed…</span>
+        </div>
+
+        <div class="tree-wrap">
+          <div class="tree-inner">
+            <!-- Six phase images — only one visible at a time -->
+            <img id="img1" class="tree-img visible" src="assets/phase1.png" alt="Seed">
+            <img id="img2" class="tree-img hidden"  src="assets/phase2.png" alt="Sprout">
+            <img id="img3" class="tree-img hidden"  src="assets/phase3.png" alt="Sapling">
+            <img id="img4" class="tree-img hidden"  src="assets/phase4.png" alt="Budding">
+            <img id="img5" class="tree-img hidden"  src="assets/phase5.png" alt="Blooming">
+            <img id="img6" class="tree-img hidden"  src="assets/phase6.png" alt="Full Bloom">
+          </div>
+          <div class="oval-vignette"></div>
+          <div class="slabel" id="slabel">✦ Resting seed</div>
+        </div>
+
+        <!-- Garden stats -->
+        <div class="gbar">
+          <div class="gs">🌸 <span class="gsv" id="gP">0</span>&thinsp;petals</div>
+          <div class="gs">✿ <span class="gsv" id="gB">0</span>&thinsp;blossoms</div>
+          <div class="gs">🍑 <span class="gsv" id="gF">0</span>&thinsp;fruits</div>
+          <div class="gs" style="margin-left:auto;">花&thinsp;<span class="gsv" id="gT">0</span>&thinsp;days</div>
+        </div>
+
+        <!-- Monthly goal -->
+        <div class="goal-area">
+          <div class="goal-row">
+            <span class="goal-lbl">Monthly Progress</span>
+            <span class="goal-pct" id="gpct">0%</span>
+          </div>
+          <div class="goal-track">
+            <div class="goal-fill" id="gfill" style="width:0%"></div>
+          </div>
+          <div class="goal-ir">
+            <span>Goal:</span>
+            <input type="number" id="gIn" value="20" min="1" max="31">
+            <span>days this month</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- CALENDAR -->
+      <div class="card">
+        <div class="ch" style="margin-top:2px;">
+          <span class="ct">Calendar <span class="kana">暦</span></span>
+        </div>
+        <div class="cal-pad" style="margin-top:12px;">
+          <div class="wdr">
+            <div class="wd">Sun</div><div class="wd">Mon</div><div class="wd">Tue</div>
+            <div class="wd">Wed</div><div class="wd">Thu</div><div class="wd">Fri</div><div class="wd">Sat</div>
+          </div>
+          <div class="dg" id="dg"></div>
+          <div class="cleg">
+            <div class="leg"><div class="ld w"></div>Worked</div>
+            <div class="leg"><div class="ld a"></div>Applied</div>
+            <div class="leg"><div class="ld e"></div>Event</div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /left col -->
+
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+
+      <!-- Streak -->
+      <div class="streak-card">
+        <span class="flame">🔥</span>
+        <div>
+          <div class="streak-n" id="strN">0<sub> days</sub></div>
+          <div class="streak-sub">Current Streak</div>
+        </div>
+      </div>
+
+      <!-- Stats -->
+      <div class="card">
+        <div class="ch"><span class="ct">This Month <span class="kana">今月</span></span></div>
+        <div class="cb">
+          <div class="stg">
+            <div class="st"><span class="stv" id="sW">0</span><span class="stl">Days Worked</span></div>
+            <div class="st"><span class="stv" id="sA">0</span><span class="stl">Applications</span></div>
+            <div class="st"><span class="stv" id="sE">0</span><span class="stl">Events</span></div>
+            <div class="st"><span class="stv" id="sN">0</span><span class="stl">Notes</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quote -->
+      <div class="quote-card">
+        <p class="qt" id="qt">Small steps every day build extraordinary paths.</p>
+        <span class="qa">— daily reflection</span>
+      </div>
+
+    </div><!-- /sidebar -->
+
+  </div><!-- /grid -->
+</div><!-- /app -->
+
+<!-- ══ MODAL ══ -->
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <div class="mdate" id="mdt"></div>
+
+    <div class="ms">
+      <span class="ml">Mark this day</span>
+      <div class="tog-row">
+        <button class="tog" id="tW" onclick="tWork()">🌿 Worked Today</button>
+        <button class="tog" id="tA" onclick="tApply()">✉ Applied</button>
+      </div>
+    </div>
+
+    <div class="ms">
+      <span class="ml">Daily Note</span>
+      <textarea class="mta" id="nta" placeholder="Wins, reflections, gratitude… what made today meaningful?"></textarea>
+    </div>
+
+    <div class="ms">
+      <span class="ml">Events & Tasks</span>
+      <div class="icg" id="icg"></div>
+      <div class="ar">
+        <input class="min" id="ein" placeholder="Add an event or task…" onkeydown="if(event.key==='Enter')aev()">
+        <button class="ab" onclick="aev()">+ Add</button>
+      </div>
+      <div class="evl" id="evl"></div>
+    </div>
+
+    <div class="mbtns">
+      <button class="bg" onclick="closeM()">Cancel</button>
+      <button class="bp" onclick="saveD()">Save Day ✦</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ GOAL CELEBRATION OVERLAY ══ -->
+<div class="goal-overlay" id="goalOverlay">
+  <div class="goal-cel" id="goalCel">
+    <span class="goal-tree-anim" id="celTree">🌸</span>
+    <span class="goal-cel-kana">達成 · tassei</span>
+    <h2 class="goal-cel-h">Goal <em>Achieved</em> ✦</h2>
+    <p class="goal-cel-msg" id="celMsg">
+      You showed up, day after day, even when the progress was invisible.<br>
+      Look at what you have grown.
+    </p>
+    <div class="goal-cel-stats" id="celStats"></div>
+    <button class="goal-cel-close" onclick="closeGoalCel()">Continue Blooming 🌸</button>
+  </div>
+</div>
+
+<script>
+/* ══════════════════════════════════════
+   CONSTANTS
+══════════════════════════════════════ */
+const MONTHS = ['January','February','March','April','May','June',
+                'July','August','September','October','November','December'];
+
+const EV_ICONS = ['📌','⭐','💡','📚','🏃','🎯','🤝','✉️','💼','🧘','🎨','🛠️','🌟','🍵','🎋'];
+
+const QUOTES = [
+  "The effort you cannot see is still shaping the person you are becoming.",
+  "Underground, roots grow in the dark. So do you, on the quiet days.",
+  "Not every season is for blooming. Some are for deepening your roots.",
+  "You are not behind. You are exactly where your story needs you to be.",
+  "The days that feel like nothing are often the ones that change everything.",
+  "Progress lives in the spaces between the moments you notice it.",
+  "A seed does not apologise for taking time. Neither should you.",
+  "Show up softly, show up honestly — that is enough for today.",
+  "Even the cherry tree spends most of its life simply growing, unseen.",
+  "Your consistency is a quiet kind of courage the world rarely applauds.",
+  "The invisible work — the thinking, the trying, the not-quitting — counts.",
+  "You will not see the whole staircase. Take the next step anyway.",
+  "Rest is not the absence of effort. It is effort choosing to trust the process.",
+  "Something is always being built inside you, even when the outside is still.",
+  "The most important growth happens before anyone can see it.",
+  "Patience is not waiting. It is believing something is already on its way.",
+  "You are doing better than the noise in your head suggests.",
+  "Each small action today is a letter written to your future self.",
+  "The tree does not measure its growth. It simply continues to reach upward.",
+  "On the days nothing feels like progress — you showed up. That is the work.",
+];
+
+// Stage config: [label, subtitle, min days to reach]
+const STAGES = [
+  { label: '✦ Resting seed',         sub: 'plant your first seed…',      min: 0  },
+  { label: '✦ First sprout',          sub: 'a sprout emerges…',           min: 1  },
+  { label: '✦ Young sapling',         sub: 'roots growing deep',          min: 5  },
+  { label: '✦ Budding with hope',     sub: 'buds beginning to form',      min: 11 },
+  { label: '✦ Blooming beautifully',  sub: 'petals opening gently',       min: 19 },
+  { label: '✦ In full blossom 🌸',   sub: 'in magnificent bloom ✿',      min: 29 },
+];
+
+/* ══════════════════════════════════════
+   STATE
+══════════════════════════════════════ */
+let now    = new Date();
+let viewY  = now.getFullYear();
+let viewM  = now.getMonth();
+let selKey = null, mWork = false, mApply = false, mEvs = [], selIcon = '📌';
+let lastStage = -1;
+
+function store() { try { return JSON.parse(localStorage.getItem('bloom_saku') || '{}'); } catch { return {}; } }
+function save(d) { localStorage.setItem('bloom_saku', JSON.stringify(d)); }
+function dk(y, m, d) { return `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`; }
+function totalWorked() { return Object.values(store()).filter(v => v.worked).length; }
+
+/* ══════════════════════════════════════
+   STREAK — counts consecutive worked days going back from today
+══════════════════════════════════════ */
+function calcStreak() {
+  const data = store();
+  let s = 0;
+  const t = new Date(now);
+  for (let i = 0; i < 730; i++) {
+    const k = dk(t.getFullYear(), t.getMonth(), t.getDate());
+    if (data[k]?.worked) { s++; t.setDate(t.getDate() - 1); }
+    else break;
+  }
+  return s;
+}
+
+/* ══════════════════════════════════════
+   TREE STAGE
+══════════════════════════════════════ */
+function getStage(total) {
+  let s = 0;
+  for (let i = 0; i < STAGES.length; i++) {
+    if (total >= STAGES[i].min) s = i;
+  }
+  return s; // 0-indexed → img1 = stage 0
+}
+
+function updateTree() {
+  const total = totalWorked();
+  const stage = getStage(total);
+
+  // Swap visible image
+  if (stage !== lastStage) {
+    for (let i = 1; i <= 6; i++) {
+      const img = document.getElementById(`img${i}`);
+      if (i === stage + 1) {
+        img.classList.remove('hidden');
+        img.classList.add('visible');
+        if (lastStage >= 0) { // not initial load
+          img.classList.remove('level-up');
+          void img.offsetWidth;
+          img.classList.add('level-up');
+          setTimeout(() => img.classList.remove('level-up'), 1900);
+        }
+      } else {
+        img.classList.add('hidden');
+        img.classList.remove('visible');
+      }
+    }
+    lastStage = stage;
+  }
+
+  document.getElementById('slabel').textContent = STAGES[stage].label;
+  document.getElementById('gsub').textContent   = STAGES[stage].sub;
+  document.getElementById('gP').textContent  = total;
+  document.getElementById('gB').textContent  = Math.floor(total / 7);
+  document.getElementById('gF').textContent  = Math.floor(total / 30);
+  document.getElementById('gT').textContent  = total;
+}
+
+/* ══════════════════════════════════════
+   FALLING PETALS CANVAS
+══════════════════════════════════════ */
+const pc   = document.getElementById('petalCanvas');
+const pctx = pc.getContext('2d');
+let petals = [];
+
+function resizePC() { pc.width = window.innerWidth; pc.height = window.innerHeight; }
+resizePC();
+window.addEventListener('resize', resizePC);
+
+class Petal {
+  constructor(burst = false) {
+    this.x   = burst
+      ? window.innerWidth * 0.25 + Math.random() * window.innerWidth * 0.5
+      : Math.random() * pc.width;
+    this.y   = burst ? -10 - Math.random() * 50 : -15;
+    this.r   = 3.5 + Math.random() * 8;
+    this.vx  = (Math.random() - 0.5) * (burst ? 3.2 : 1.4);
+    this.vy  = (burst ? 1.8 : 0.9) + Math.random() * 2;
+    this.rot = Math.random() * Math.PI * 2;
+    this.rv  = (Math.random() - 0.5) * 0.065;
+    this.sw  = Math.random() * Math.PI * 2;
+    this.life = 0;
+    this.max  = 170 + Math.random() * 130;
+    this.hue  = 330 + Math.random() * 22;
+    this.a    = 1;
+  }
+  tick() {
+    this.life++; this.sw += 0.038;
+    this.x += this.vx + Math.sin(this.sw) * 0.85;
+    this.y += this.vy;
+    this.rot += this.rv;
+    if (this.life > this.max * 0.72)
+      this.a = 1 - (this.life - this.max * 0.72) / (this.max * 0.28);
+    return this.life < this.max;
+  }
+  draw(c) {
+    c.save();
+    c.globalAlpha = Math.max(0, this.a);
+    c.translate(this.x, this.y);
+    c.rotate(this.rot);
+    c.fillStyle   = `hsl(${this.hue},62%,84%)`;
+    c.strokeStyle = `hsl(${this.hue},58%,72%)`;
+    c.lineWidth   = 0.5;
+    c.beginPath();
+    c.ellipse(0, 0, this.r, this.r * 0.52, 0, 0, Math.PI * 2);
+    c.fill(); c.stroke();
+    c.restore();
+  }
+}
+
+function spawnPetals(n = 18, burst = false) {
+  for (let i = 0; i < n; i++)
+    setTimeout(() => petals.push(new Petal(burst)), i * 48);
+}
+
+function animPetals() {
+  pctx.clearRect(0, 0, pc.width, pc.height);
+  petals = petals.filter(p => { const a = p.tick(); if (a) p.draw(pctx); return a; });
+  requestAnimationFrame(animPetals);
+}
+animPetals();
+
+// Gentle ambient petals when tree has grown
+setInterval(() => {
+  if (totalWorked() > 0 && petals.length < 28) petals.push(new Petal(false));
+}, 2600);
+
+/* ══════════════════════════════════════
+   CONFETTI BURST
+══════════════════════════════════════ */
+function confetti() {
+  const cols = ['#f5ccd6','#e8a0b8','#cc7090','#f0e2c4','#c8a060','#b8d8a4','#a8c8f0'];
+  for (let i = 0; i < 55; i++) {
+    const e = document.createElement('div');
+    e.className = 'cf';
+    e.style.cssText = `
+      left:${12 + Math.random() * 76}%;
+      width:${5 + Math.random() * 7}px;
+      height:${5 + Math.random() * 7}px;
+      background:${cols[i % cols.length]};
+      animation-duration:${1.5 + Math.random() * 2.2}s;
+      animation-delay:${Math.random() * 0.4}s;
+      opacity:1;
+    `;
+    document.body.appendChild(e);
+    setTimeout(() => e.remove(), 4400);
+  }
+}
+
+/* ══════════════════════════════════════
+   WEB AUDIO — SAKURA SOUNDSCAPE
+   Original royalty-free composition via Web Audio API
+   Pentatonic koto-style melody · soft pad · birds · water · wind
+══════════════════════════════════════ */
+let audioCtx = null, soundOn = false, sNodes = [], melodyTimer = null;
+
+/* ── Pentatonic scale rooted in D — Japanese feel ──
+   D4  E4  F#4  A4  B4  D5  E5  F#5  A5  B5
+   All generated, zero copyright, forever yours. */
+const PENTA = [293.66, 329.63, 369.99, 440.00, 493.88,
+               587.33, 659.25, 739.99, 880.00, 987.77];
+
+// Koto-like pluck: short attack, fast initial decay, long resonant tail
+function pluck(ctx, dest, freq, time, vol = 0.18) {
+  const osc  = ctx.createOscillator();
+  const osc2 = ctx.createOscillator(); // slight detuned for warmth
+  const g    = ctx.createGain();
+  const lp   = ctx.createBiquadFilter();
+  lp.type = 'lowpass'; lp.frequency.value = freq * 5; lp.Q.value = 2;
+
+  osc.type  = 'triangle'; osc.frequency.value  = freq;
+  osc2.type = 'sine';     osc2.frequency.value = freq * 1.003; // subtle beating
+
+  const gOsc2 = ctx.createGain(); gOsc2.gain.value = 0.3;
+
+  g.gain.setValueAtTime(0, time);
+  g.gain.linearRampToValueAtTime(vol, time + 0.008);       // sharp attack
+  g.gain.exponentialRampToValueAtTime(vol * 0.4, time + 0.06); // fast initial drop
+  g.gain.exponentialRampToValueAtTime(vol * 0.12, time + 0.4); // resonant sustain
+  g.gain.exponentialRampToValueAtTime(0.0001, time + 2.2); // long natural decay
+
+  osc.connect(lp); osc2.connect(gOsc2); gOsc2.connect(lp);
+  lp.connect(g); g.connect(dest);
+  osc.start(time); osc.stop(time + 2.5);
+  osc2.start(time); osc2.stop(time + 2.5);
+  sNodes.push(osc, osc2, g, lp, gOsc2);
+}
+
+// Soft pad note — slow attack, long sustain, like a breath
+function pad(ctx, dest, freq, time, dur, vol = 0.04) {
+  const osc = ctx.createOscillator();
+  const g   = ctx.createGain();
+  osc.type = 'sine'; osc.frequency.value = freq;
+  g.gain.setValueAtTime(0, time);
+  g.gain.linearRampToValueAtTime(vol, time + dur * 0.35);
+  g.gain.setValueAtTime(vol, time + dur * 0.65);
+  g.gain.linearRampToValueAtTime(0, time + dur);
+  osc.connect(g); g.connect(dest);
+  osc.start(time); osc.stop(time + dur + 0.1);
+  sNodes.push(osc, g);
+}
+
+// The sakura melody — a lilting 16-note phrase, loops gently
+// Notes are PENTA indices, durations in seconds
+const MELODY_PHRASES = [
+  // phrase A — opening, contemplative
+  [[4,1.1],[3,0.55],[2,0.55],[4,0.8],[5,1.4],[4,0.55],[3,0.55],[1,1.6],
+   [2,0.9],[3,0.55],[4,0.55],[5,0.8],[7,1.4],[6,0.55],[5,0.55],[4,2.2]],
+  // phrase B — slightly brighter, upward reaching
+  [[5,0.9],[6,0.55],[7,0.55],[8,1.1],[7,0.55],[6,0.55],[5,1.2],[4,0.55],
+   [3,0.55],[5,0.9],[4,0.55],[3,0.55],[2,1.1],[1,0.55],[2,0.55],[3,2.4]],
+  // phrase C — gentle resolution
+  [[3,0.8],[4,0.55],[5,0.55],[4,1.0],[3,0.55],[2,0.55],[1,1.4],[2,0.55],
+   [3,0.55],[4,0.8],[3,0.55],[2,0.55],[1,1.2],[0,0.55],[1,0.55],[2,2.8]],
+];
+
+// Bass/pad chord pattern (low octave pairs)
+const PAD_PATTERN = [
+  [PENTA[0]/2, PENTA[2]/2, 6.4],
+  [PENTA[1]/2, PENTA[3]/2, 6.4],
+  [PENTA[0]/2, PENTA[4]/2, 6.4],
+  [PENTA[2]/2, PENTA[3]/2, 6.4],
+];
+
+function startSounds() {
+  if (audioCtx) return;
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+  // ── Master chain: compressor → reverb → master gain ──
+  const master = audioCtx.createGain();
+  master.gain.setValueAtTime(0, audioCtx.currentTime);
+  master.gain.linearRampToValueAtTime(0.72, audioCtx.currentTime + 3.5);
+
+  // Reverb (convolution impulse — makes koto notes bloom like a temple hall)
+  const convolver = audioCtx.createConvolver();
+  const revLen = audioCtx.sampleRate * 3.2;
+  const revBuf = audioCtx.createBuffer(2, revLen, audioCtx.sampleRate);
+  for (let c = 0; c < 2; c++) {
+    const d = revBuf.getChannelData(c);
+    for (let i = 0; i < revLen; i++)
+      d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / revLen, 2.8);
+  }
+  convolver.buffer = revBuf;
+
+  const dryGain = audioCtx.createGain(); dryGain.gain.value = 0.6;
+  const wetGain = audioCtx.createGain(); wetGain.gain.value = 0.42;
+  const compressor = audioCtx.createDynamicsCompressor();
+  compressor.threshold.value = -22; compressor.ratio.value = 4;
+
+  // Routing: instruments → dryGain+convolver → wetGain → compressor → master → dest
+  const instrBus = audioCtx.createGain(); instrBus.gain.value = 1;
+  instrBus.connect(dryGain); instrBus.connect(convolver);
+  dryGain.connect(compressor); convolver.connect(wetGain); wetGain.connect(compressor);
+  compressor.connect(master); master.connect(audioCtx.destination);
+  sNodes.push(master, convolver, dryGain, wetGain, compressor, instrBus);
+
+  // ── MELODY SCHEDULER ──
+  let phraseIdx = 0;
+  function scheduleMelody() {
+    if (!soundOn || !audioCtx) return;
+    const phrase = MELODY_PHRASES[phraseIdx % MELODY_PHRASES.length];
+    let t = audioCtx.currentTime + 0.1;
+    phrase.forEach(([noteIdx, dur]) => {
+      pluck(audioCtx, instrBus, PENTA[noteIdx], t, 0.16);
+      t += dur;
+    });
+    phraseIdx++;
+    const phraseDur = phrase.reduce((s, [, d]) => s + d, 0);
+    melodyTimer = setTimeout(scheduleMelody, (phraseDur - 0.3) * 1000);
+  }
+
+  // ── PAD CHORDS (slow, ambient background) ──
+  let padIdx = 0;
+  function schedulePad() {
+    if (!soundOn || !audioCtx) return;
+    const [f1, f2, dur] = PAD_PATTERN[padIdx % PAD_PATTERN.length];
+    const t = audioCtx.currentTime;
+    pad(audioCtx, instrBus, f1, t, dur, 0.038);
+    pad(audioCtx, instrBus, f2, t + 0.1, dur, 0.028);
+    padIdx++;
+    setTimeout(schedulePad, (dur - 0.5) * 1000);
+  }
+
+  // ── WIND (band-passed noise, very subtle) ──
+  const wBuf = audioCtx.createBuffer(1, audioCtx.sampleRate * 8, audioCtx.sampleRate);
+  const wD = wBuf.getChannelData(0);
+  for (let i = 0; i < wD.length; i++) wD[i] = Math.random() * 2 - 1;
+  const wSrc = audioCtx.createBufferSource(); wSrc.buffer = wBuf; wSrc.loop = true;
+  const wBP  = audioCtx.createBiquadFilter(); wBP.type = 'bandpass'; wBP.frequency.value = 280; wBP.Q.value = 0.5;
+  const wG   = audioCtx.createGain(); wG.gain.value = 0.08;
+  const wLFO = audioCtx.createOscillator(); wLFO.frequency.value = 0.06;
+  const wLG  = audioCtx.createGain(); wLG.gain.value = 0.04;
+  wLFO.connect(wLG); wLG.connect(wG.gain); wLFO.start();
+  wSrc.connect(wBP); wBP.connect(wG); wG.connect(master); wSrc.start();
+  sNodes.push(wSrc, wBP, wG, wLFO, wLG);
+
+  // ── BIRDS ──
+  function chirp() {
+    if (!soundOn || !audioCtx) return;
+    const t = audioCtx.currentTime;
+    const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+    const f = 2100 + Math.random() * 1800;
+    o.type = 'sine';
+    o.frequency.setValueAtTime(f, t);
+    o.frequency.linearRampToValueAtTime(f * 1.1, t + 0.06);
+    o.frequency.linearRampToValueAtTime(f * 0.92, t + 0.16);
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(0.018, t + 0.025);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.19);
+    o.connect(g); g.connect(master);
+    o.start(t); o.stop(t + 0.22);
+    if (Math.random() > 0.5) setTimeout(() => { if (soundOn) chirp(); }, 200 + Math.random() * 320);
+    setTimeout(() => { if (soundOn) chirp(); }, 3000 + Math.random() * 7000);
+  }
+
+  // ── WATER DROPS ──
+  function drop() {
+    if (!soundOn || !audioCtx) return;
+    const t = audioCtx.currentTime;
+    const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+    o.type = 'sine'; o.frequency.value = 380 + Math.random() * 320;
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(0.009, t + 0.007);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.05);
+    o.connect(g); g.connect(master);
+    o.start(t); o.stop(t + 0.06);
+    setTimeout(() => { if (soundOn) drop(); }, 150 + Math.random() * 320);
+  }
+
+  // Staggered starts for natural feel
+  setTimeout(scheduleMelody, 600);
+  setTimeout(schedulePad,    400);
+  setTimeout(chirp,         1800);
+  setTimeout(drop,          2600);
+}
+
+function stopSounds() {
+  if (melodyTimer) clearTimeout(melodyTimer);
+  melodyTimer = null;
+  sNodes.forEach(n => { try { n.disconnect(); } catch(e) {} try { if (n.stop) n.stop(); } catch(e) {} });
+  sNodes = [];
+  if (audioCtx) { audioCtx.close(); audioCtx = null; }
+}
+
+function toggleSound() {
+  soundOn = !soundOn;
+  const btn = document.getElementById('sndBtn');
+  document.getElementById('sndLbl').textContent = soundOn ? 'Sounds On ♪' : 'Sakura Music';
+  document.getElementById('sndIco').textContent = soundOn ? '🎋' : '🌿';
+  soundOn ? (btn.classList.add('on'), startSounds()) : (btn.classList.remove('on'), stopSounds());
+}
+
+/* ══════════════════════════════════════
+   CALENDAR RENDER
+══════════════════════════════════════ */
+function renderCal() {
+  document.getElementById('mlbl').textContent = `${MONTHS[viewM]} ${viewY}`;
+  const data = store();
+  const grid = document.getElementById('dg');
+  grid.innerHTML = '';
+
+  const first = new Date(viewY, viewM, 1).getDay();
+  const days  = new Date(viewY, viewM + 1, 0).getDate();
+
+  for (let i = 0; i < first; i++) {
+    const e = document.createElement('div'); e.className = 'dc empty'; grid.appendChild(e);
+  }
+
+  for (let d = 1; d <= days; d++) {
+    const k  = dk(viewY, viewM, d);
+    const dd = data[k] || {};
+    const isToday = now.getFullYear() === viewY && now.getMonth() === viewM && now.getDate() === d;
+    const hasEv   = dd.events && dd.events.length > 0;
+
+    const cell = document.createElement('div');
+    cell.className = 'dc';
+    if (isToday)   cell.classList.add('today');
+    if (dd.worked) cell.classList.add('worked');
+    if (dd.applied)cell.classList.add('applied');
+    if (hasEv)     cell.classList.add('hev');
+
+    const mk = [];
+    if (dd.worked)  mk.push('<span></span>');
+    if (dd.applied) mk.push('<span style="background:#88aad4"></span>');
+
+    cell.innerHTML = `<span class="dn">${d}</span>${mk.length ? `<div class="dmk">${mk.join('')}</div>` : ''}`;
+    cell.addEventListener('click', () => openM(viewY, viewM, d));
+    grid.appendChild(cell);
+  }
+
+  updSidebar();
+  updGoal();
+  updateTree();
+}
+
+function updSidebar() {
+  const data = store();
+  const keys = Object.keys(data).filter(k => {
+    const [y, m] = k.split('-').map(Number);
+    return y === viewY && m - 1 === viewM;
+  });
+  document.getElementById('sW').textContent = keys.filter(k => data[k].worked).length;
+  document.getElementById('sA').textContent = keys.filter(k => data[k].applied).length;
+  document.getElementById('sE').textContent = keys.reduce((s, k) => s + (data[k].events?.length || 0), 0);
+  document.getElementById('sN').textContent = keys.filter(k => data[k].note?.trim()).length;
+  document.getElementById('strN').innerHTML = calcStreak() + '<sub> days</sub>';
+  document.getElementById('qt').textContent  = QUOTES[totalWorked() % QUOTES.length];
+}
+
+function updGoal() {
+  const goal   = parseInt(document.getElementById('gIn').value) || 20;
+  const data   = store();
+  const worked = Object.keys(data).filter(k => {
+    const [y, m] = k.split('-').map(Number);
+    return y === viewY && m - 1 === viewM && data[k].worked;
+  }).length;
+  const pct = Math.min(100, Math.round(worked / goal * 100));
+  document.getElementById('gfill').style.width = pct + '%';
+  document.getElementById('gpct').textContent  = pct + '%';
+
+  // 🎉 Goal reached — show celebration (only once per goal completion per month)
+  if (pct >= 100) {
+    const celKey = `bloom_cel_${viewY}_${viewM}_${goal}`;
+    if (!localStorage.getItem(celKey)) {
+      localStorage.setItem(celKey, '1');
+      setTimeout(() => showGoalCelebration(worked, goal), 700);
+    }
+  }
+}
+
+/* Goal celebration */
+let celShown = false;
+function showGoalCelebration(worked, goal) {
+  if (celShown) return; celShown = true;
+
+  // Petal burst from centre of cel
+  const cel = document.getElementById('goalCel');
+  const petals = ['🌸','🌸','✿','🌸','🌺','🌸','✿','🌸'];
+  petals.forEach((p, i) => {
+    const el = document.createElement('span');
+    el.className = 'cel-petal';
+    el.textContent = p;
+    const angle = (i / petals.length) * Math.PI * 2;
+    const dist  = 90 + Math.random() * 60;
+    el.style.setProperty('--dx', `${Math.cos(angle) * dist}px`);
+    el.style.setProperty('--dy', `${Math.sin(angle) * dist}px`);
+    el.style.setProperty('--dr', `${(Math.random() - 0.5) * 360}deg`);
+    el.style.cssText += `left:50%;top:40%;animation-delay:${i * 0.06}s;`;
+    cel.appendChild(el);
+    setTimeout(() => el.remove(), 2000);
+  });
+
+  // Stats chips
+  const streak = calcStreak();
+  document.getElementById('celStats').innerHTML = `
+    <div class="goal-stat-chip"><span class="v">${worked}</span><span class="l">Days Worked</span></div>
+    <div class="goal-stat-chip"><span class="v">${streak}</span><span class="l">Day Streak</span></div>
+    <div class="goal-stat-chip"><span class="v">${goal}</span><span class="l">Goal Set</span></div>
+  `;
+
+  // Rotating celebration messages
+  const msgs = [
+    "You showed up, day after day, even when progress felt invisible.<br>Look at what you have grown.",
+    "Every day you chose effort over ease. That quiet courage is extraordinary.",
+    "The tree you planted in discipline is blooming in results. You did this.",
+    "Not every petal falls easily. You earned each one. Well done.",
+    "This is what consistency looks like. You are living proof it works.",
+  ];
+  document.getElementById('celMsg').innerHTML = msgs[worked % msgs.length];
+
+  // Show celebration tree (use current stage emoji concept)
+  document.getElementById('celTree').textContent = totalWorked() >= 19 ? '🌸' : totalWorked() >= 11 ? '🌿' : '🌱';
+
+  // Big confetti + petals
+  confetti();
+  spawnPetals(35, true);
+
+  document.getElementById('goalOverlay').classList.add('open');
+}
+
+function closeGoalCel() {
+  document.getElementById('goalOverlay').classList.remove('open');
+  celShown = false;
+}
+document.getElementById('goalOverlay').addEventListener('click', e => {
+  if (e.target === e.currentTarget) closeGoalCel();
+});
+document.getElementById('gIn').addEventListener('input', updGoal);
+
+/* ══════════════════════════════════════
+   MODAL
+══════════════════════════════════════ */
+function openM(y, m, d) {
+  selKey = dk(y, m, d);
+  const data = store(), dd = data[selKey] || {};
+  const dt = new Date(y, m, d);
+  document.getElementById('mdt').textContent = dt.toLocaleDateString('en-US', {
+    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+  });
+  mWork  = !!dd.worked;
+  mApply = !!dd.applied;
+  mEvs   = dd.events ? [...dd.events] : [];
+  selIcon = '📌';
+  document.getElementById('nta').value = dd.note || '';
+  document.getElementById('ein').value = '';
+  updTogs(); buildIcg(); rendEvl();
+  document.getElementById('overlay').classList.add('open');
+  setTimeout(() => document.getElementById('nta').focus(), 330);
+}
+
+function closeM() { document.getElementById('overlay').classList.remove('open'); selKey = null; }
+function tWork()  { mWork  = !mWork;  updTogs(); }
+function tApply() { mApply = !mApply; updTogs(); }
+
+function updTogs() {
+  const w = document.getElementById('tW'), a = document.getElementById('tA');
+  w.className = 'tog' + (mWork  ? ' ow' : '');
+  w.textContent = mWork  ? '✓ Worked Today' : '🌿 Worked Today';
+  a.className = 'tog' + (mApply ? ' oa' : '');
+  a.textContent = mApply ? '✓ Applied'      : '✉ Applied';
+}
+
+function buildIcg() {
+  document.getElementById('icg').innerHTML = EV_ICONS.map(ic =>
+    `<button class="ico${ic === selIcon ? ' sel' : ''}" onclick="pIco('${ic}')">${ic}</button>`
+  ).join('');
+}
+function pIco(ic) { selIcon = ic; buildIcg(); }
+
+function aev() {
+  const v = document.getElementById('ein').value.trim();
+  if (!v) return;
+  mEvs.push({ icon: selIcon, text: v });
+  document.getElementById('ein').value = '';
+  rendEvl();
+}
+function dEv(i) { mEvs.splice(i, 1); rendEvl(); }
+function rendEvl() {
+  document.getElementById('evl').innerHTML = mEvs.map((e, i) =>
+    `<div class="evi">
+       <span>${e.icon}</span>
+       <span class="evt">${e.text}</span>
+       <button class="evd" onclick="dEv(${i})">✕</button>
+     </div>`
+  ).join('');
+}
+
+function saveD() {
+  if (!selKey) return;
+  const data   = store();
+  const note   = document.getElementById('nta').value.trim();
+  const wasW   = !!data[selKey]?.worked;
+  const prevT  = totalWorked();
+
+  if (!mWork && !mApply && !note && !mEvs.length) {
+    delete data[selKey];
+  } else {
+    data[selKey] = {
+      worked: mWork, applied: mApply, note,
+      events: mEvs.length ? [...mEvs] : undefined
+    };
+  }
+  save(data);
+  closeM();
+
+  const newT  = totalWorked();
+  const newlyW = mWork && !wasW;
+
+  if (newlyW) {
+    spawnPetals(24, true);
+    confetti();
+
+    const prevStage = getStage(prevT);
+    const newStage  = getStage(newT);
+
+    if (newStage > prevStage) {
+      const upgMsgs = [
+        '',
+        '🌱 Your seed has sprouted! A new journey begins ✦',
+        '🪴 Growing into a sapling — roots taking hold!',
+        '🌸 Pink buds are forming — you\'re doing it!',
+        '🌸 Your cherry tree is blooming — how beautiful!',
+        '🌸 FULL BLOOM! Your cherry tree is magnificent! ✦✦',
+      ];
+      showToast(upgMsgs[newStage] || '🌸 Your tree just leveled up! ✦');
+    } else {
+      const msgs = [
+        '🌸 Wonderful! Another petal blooms on your tree ✦',
+        '✿ Beautiful work today — your garden grows!',
+        '花 One more day of growth. Keep going! 🌸',
+        '🌸 Yay!! The blossoms multiply with your effort ✦',
+        '✦ Incredible — your cherry tree is proud of you!',
+        '🌸 Day by day, petal by petal. You\'re blooming! ✦',
+      ];
+      showToast(msgs[newT % msgs.length]);
+    }
+  } else if (mApply) {
+    spawnPetals(8, false);
+    showToast('✉ Application logged — you\'re putting yourself out there! ✦');
+  }
+
+  renderCal();
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3600);
+}
+
+/* ══════════════════════════════════════
+   NAV + INIT
+══════════════════════════════════════ */
+document.getElementById('prevM').addEventListener('click', () => {
+  viewM--; if (viewM < 0) { viewM = 11; viewY--; } renderCal();
+});
+document.getElementById('nextM').addEventListener('click', () => {
+  viewM++; if (viewM > 11) { viewM = 0; viewY++; } renderCal();
+});
+document.getElementById('overlay').addEventListener('click', e => {
+  if (e.target === e.currentTarget) closeM();
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeM(); });
+
+// Init
+renderCal();
+setTimeout(() => spawnPetals(8, false), 900);
+</script>
+</body>
+</html>
